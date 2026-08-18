@@ -16,16 +16,16 @@
         src: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
         dest: /tmp
         remote_src: yes
-    
+
     - name: Memindahkan binary export Node Exporter
       copy:
         src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
         dest: "/usr/local/bin/node_exporter"
         owner: node_exporter
-        mode: '0755'
+        mode: "0755"
         remote_src: yes
       notify: restart node_exporter
-    
+
     - name: Membuat file service Node Exporter
       copy:
         dest: /etc/systemd/system/node_exporter.service
@@ -38,20 +38,20 @@
           [Install]
           WantedBy=multi-user.target
       notify: restart node_exporter
-    
+
     # --- GRAFANA ALLOY ---
     - name: Mengunduh GPG key Grafana Alloy
       shell: "wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor > /etc/apt/keyrings/grafana.gpg"
       args:
         creates: /etc/apt/keyrings/grafana.gpg
-    
+
     - name: Menambahkan repository APT Grafana
       apt_repository:
         repo: "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main"
         state: present
         filename: grafana
         update_cache: yes
-    
+
     - name: Menginstall Grana Alloy
       apt:
         name: alloy
@@ -63,7 +63,7 @@
         groups: adm
         append: yes
       notify: restart alloy
-    
+
     - name: Mengconfigurasi config.alloy
       copy:
         dest: /etc/alloy/config.alloy
@@ -71,7 +71,7 @@
           local.file_match "server_logs" {
             path_targets = [
               {"__path__" = "/var/log/syslog", "job" = "syslog", "host" = "{{ inventory_hostname }}"},
-              {"__path__" = "/var/log/nginx/*.log", "job" = "nginx", "host" = "{{ inventory_hostname }}"}
+              {"__path__" = "/var/log/nginx/*.log", "job" = "nginx", "host" = "{{ inventory_hostname }}"},
             ]
           }
           loki.source.file "log_scraper" {
@@ -84,7 +84,7 @@
             }
           }
       notify: restart alloy
-    
+
   handlers:
     - name: restart node_exporter
       systemd: name=node_exporter state=restarted daemon_reload=yes enabled=yes
