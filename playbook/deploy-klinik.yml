@@ -28,12 +28,20 @@
       fail:
         msg: "[ERROR] aplikasi sudah terinstall di {{ install_dir }}"
       when: git_dir_check.stat.exists
+    
+    - name: Pastikan directory installasi ada dan dimiliki oleh user
+      file:
+        path: "{{ install_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
 
     - name: Clonning deployment repository
       git:
         repo: "{{ repo_url_with_pat }}"
         dest: "{{ install_dir }}"
         version: main
+      become_user: "{{ ansible_user }}"
     
     - name: Mengaktifkan credential.helper store (menyimpan PAT secara local)
       git_config:
@@ -41,11 +49,13 @@
         name: credential.helper
         value: store
         scope: local
+      become_user: "{{ ansible_user }}"
     
     - name: Mengembalikan URL remote origin ke HTTPS publik (tanpa token)
       command: git remote set-url origin "{{ repo_url_public }}"
       args:
         chdir: "{{ install_dir }}"
+      become_user: "{{ ansible_user }}"
     
     - name: Mengubah permission agar file sh dapat di eksekusi
       file:
@@ -54,12 +64,14 @@
       loop:
         - install.sh
         - update.sh
+      become_user: "{{ ansible_user }}"
     
     - name: Menjalankan install.sh
       command: ./install.sh
       args:
         chdir: "{{ install_dir }}"
       register: install_result
+      become_user: "{{ ansible_user }}"
     
     - name: menampilkan output dari installasi
       debug:
