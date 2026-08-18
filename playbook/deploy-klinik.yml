@@ -43,7 +43,7 @@
         scope: local
     
     - name: Mengembalikan URL remote origin ke HTTPS publik (tanpa token)
-      command: git remote set-url oring "{{ repo_url_public }}"
+      command: git remote set-url origin "{{ repo_url_public }}"
       args:
         chdir: "{{ install_dir }}"
     
