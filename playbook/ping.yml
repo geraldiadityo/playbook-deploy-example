@@ -1,6 +1,6 @@
 ---
 - name: Uji koneksi ke server target
-  hosts: all
+  hosts: target_servers
   gather_facts: no
   
   tasks:
