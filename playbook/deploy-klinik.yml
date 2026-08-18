@@ -1,0 +1,79 @@
+---
+- name: Bootstrap Aplikasi Klinik
+  hosts: target_servers
+  become: yes
+  vars:
+    repo_url_with_pat: "https://{{ github_username }}:{{ git_pat }}@github.com/{{ repository }}.git"
+    repo_url_public: "https://github.com/{{ repository }}.git"
+
+  tasks:
+    - name: Pengecekan Ketersediaan Git
+      command: which git
+      register: git_check
+      failed_when: git_check.rc != 0
+      changed_when: false
+
+    - name: Pengecekan Ketersediaan Docker
+      command: which docker
+      register: docker_check
+      failed_when: docker_check.rc != 0
+      changed_when: false
+
+    - name: Cek apakah aplikasi sudah terinstall (keberadaan folder .git)
+      stat:
+        path: "{{ install_dir }}/.git"
+      register: git_dir_check
+
+    - name: Gagal jika aplikasi sudah pernah di install di {{ install_dir }}
+      fail:
+        msg: "[ERROR] aplikasi sudah terinstall di {{ install_dir }}"
+      when: git_dir_check.stat.exists
+
+    - name: Clonning deployment repository
+      git:
+        repo: "{{ repo_url_with_pat }}"
+        dest: "{{ install_dir }}"
+        version: main
+    
+    - name: Mengaktifkan credential.helper store (menyimpan PAT secara local)
+      git_config:
+        repo: "{{ install_dir }}"
+        name: credential.helper
+        value: store
+        scope: local
+    
+    - name: Mengembalikan URL remote origin ke HTTPS publik (tanpa token)
+      command: git remote set-url oring "{{ repo_url_public }}"
+      args:
+        chdir: "{{ install_dir }}"
+    
+    - name: Mengubah permission agar file sh dapat di eksekusi
+      file:
+        path: "{{ install_dir }}/{{ item }}"
+        mode: '0755'
+      loop:
+        - install.sh
+        - update.sh
+    
+    - name: Menjalankan install.sh
+      command: ./install.sh
+      args:
+        chdir: "{{ install_dir }}"
+      register: install_result
+    
+    - name: menampilkan output dari installasi
+      debug:
+        var: install_result.stdout_lines
+    
+    - name: Menampilkan instruksi langkah selanjutnya
+      debug:
+        msg:
+          - "================================================="
+          - "Repository deployment siap digunakan."
+          - ""
+          - "Langkah selanjutnya:"
+          - "1. Upload file .env ke: {{ install_dir }}/.env"
+          - "2. Jalankan secara manual:"
+          - "   cd {{ install_dir }}"
+          - "   bash update.sh"
+          - "================================================="

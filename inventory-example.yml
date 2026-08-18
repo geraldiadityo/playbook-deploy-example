@@ -3,20 +3,33 @@ all:
     target_servers:
       hosts:
         server-app-01:
-          ansible_host: 192.168.1.10   # Ganti dengan IP Public/Private server Anda
-          ansible_user: ubuntu         # Ganti dengan user SSH Anda (misal: root atau ubuntu)
+          ansible_host: 192.168.1.10   # IP server
+          ansible_user: ubuntu         # User SSH
           
         server-app-02:
           ansible_host: 192.168.1.11
           ansible_user: ubuntu
 
-  # Mendefinisikan variabel global yang akan dibaca oleh playbook
   vars:
-    # Port SSH (PENTING)
-    # Catatan: Saat menjalankan setup-os.yml PERTAMA KALI, ubah ini ke 22.
-    # Setelah setup-os.yml berhasil mengubah port ke 10123, gunakan 10123.
-    ansible_port: 22 
+    # ---------------------------------------------
+    # Variabel Konfigurasi OS (setup-os.yml)
+    # ---------------------------------------------
+    ansible_port: 10123 
     
-    # Variabel untuk install-agent.yml
-    node_exporter_version: "1.8.2"           # Versi Node Exporter yang ingin diinstall
-    monitoring_server_ip: "10.0.0.100"       # IP server pusat monitoring (Loki) Anda
+    # ---------------------------------------------
+    # Variabel Monitoring Agent (install-agent.yml)
+    # ---------------------------------------------
+    node_exporter_version: "1.8.2"           
+    monitoring_server_ip: "10.0.0.100"       
+    
+    # ---------------------------------------------
+    # Variabel Deploy Klinik (deploy-klinik.yml)
+    # ---------------------------------------------
+    install_dir: "/opt/aplikasi-klinik"               # Path instalasi di server
+    repository: "nama-organisasi/repo-klinik"         # Format: username/repo atau org/repo
+    github_username: "user_anda"                      # Username Github Anda
+    
+    # PERHATIAN: Menyimpan token asli di plain text sangat tidak disarankan untuk production!
+    # Sebaiknya gunakan Ansible Vault atau passing argumen via CLI.
+    # Untuk uji coba, Anda bisa menyimpannya sementara di sini:
+    git_pat: "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
