@@ -1,0 +1,22 @@
+all:
+  children:
+    target_servers:
+      hosts:
+        server-app-01:
+          ansible_host: 192.168.1.10   # Ganti dengan IP Public/Private server Anda
+          ansible_user: ubuntu         # Ganti dengan user SSH Anda (misal: root atau ubuntu)
+          
+        server-app-02:
+          ansible_host: 192.168.1.11
+          ansible_user: ubuntu
+
+  # Mendefinisikan variabel global yang akan dibaca oleh playbook
+  vars:
+    # Port SSH (PENTING)
+    # Catatan: Saat menjalankan setup-os.yml PERTAMA KALI, ubah ini ke 22.
+    # Setelah setup-os.yml berhasil mengubah port ke 10123, gunakan 10123.
+    ansible_port: 22 
+    
+    # Variabel untuk install-agent.yml
+    node_exporter_version: "1.8.2"           # Versi Node Exporter yang ingin diinstall
+    monitoring_server_ip: "10.0.0.100"       # IP server pusat monitoring (Loki) Anda

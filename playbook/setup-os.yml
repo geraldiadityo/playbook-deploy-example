@@ -1,0 +1,106 @@
+---
+- name: Konfigurasi Dasar OS (Timezone, Requirement, SSH, UFW, Fail2ban dan Nginx)
+  hosts: target_servers
+  become: yes
+  tasks:
+    - name: Mengatur Timezone ke Asia/Jakarta
+      timezone:
+        name: Asia/Jakarta
+    
+    - name: install requirements, Nginx, UFW dan Fail2ban
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - chrony
+          - rsync
+          - ufw
+          - fail2ban
+          - nginx
+        state: present
+        update_cache: yes
+    
+    - name: Sinkronasi waktu manual (Chrony makestep)
+      command: chronyc -a makestep
+      register: chrony_result
+      changed_when: false
+      failed_when: chrony_result.rc != 0
+    
+    - name: Mengubah Port SSH menjadi 10123 di sshd_config
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Port'
+        line: 'Port 10123'
+        validate: '/usr/sbin/sshd -t -f %s'
+      notify: restart ssh
+    
+    - name: Terapkan perubahan konfigurasi SSH segera (Flush Handler)
+      meta: flush_handlers
+    
+    - name: Menginzinkan trafic masuk ke port SSH baru (10123)
+      ufw:
+        rule: allow
+        port: '10123'
+        proto: tcp
+    
+    - name: Mengizinkan traffic masuk untuk Nginx (Http - Port 80)
+      ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+    
+    - name: Mengizinkan traffic masuk untuk Nginx (Https - Port 443)
+      ufw:
+        rule: allow
+        port: '443'
+        proto: tcp
+    
+    - name: Mengaktifkan UFW dan menetapkan default deny untuk incoming
+      ufw:
+        state: enabled
+        direction: incoming
+        policy: deny
+    
+    - name: Konfigurasi Fail2ban (jail.local) untuk proteksi SSH
+      copy:
+        dest: /etc/fail2ban/jail.local
+        content: |
+          [DEFAULT]
+          # Menggunakan UFW sebagai aksi pemblokiran
+          banaction = ufw
+          banaction_allports = ufw
+
+          [sshd]
+          enabled = true
+          port = 10123
+          filter = sshd
+          logpath = /var/log/auth.log
+          # memblokir IP jika gagal login 3 kali dalam 10 menit (600 detik)
+          maxretry = 3
+          findtime = 600
+          # Waktu pemblokiran selama 1 jam (3600 detik)
+          bantime = 3600
+        mode: '0644'
+      notify: restart fail2ban
+    
+    - name: Memastikan service Nginx dan Fail2ban berjalan dan enable saat boot
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - nginx
+        - fail2ban
+  
+  handlers:
+    - name: restart ssh
+      service:
+        name: ssh
+        state: restarted
+    
+    - name: restart fail2ban
+      service:
+        name: fail2ban
+        state: restarted

@@ -1,0 +1,8 @@
+---
+- name: Uji koneksi ke server target
+  hosts: all
+  gather_facts: no
+  
+  tasks:
+    - name: mengirim signal ping ke server
+      ping:
